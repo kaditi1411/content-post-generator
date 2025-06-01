@@ -2,7 +2,7 @@ import google.generativeai as genai
 from google.api_core.exceptions import ResourceExhausted
 
 # Directly set the API key here (not recommended for production)
-genai.configure(api_key="AIzaSyBGWjPzqRL8KhQ135KOu_G7GkCf3Du3Ljg")
+genai.configure(api_key="")
 
 model = genai.GenerativeModel("models/gemini-1.5-pro")
 
