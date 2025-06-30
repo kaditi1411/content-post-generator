@@ -1,4 +1,8 @@
 import streamlit as st
+import requests
+
+# Backend URL
+BACKEND_URL = "http://127.0.0.1:8000"
 
 # Configure page
 st.set_page_config(
@@ -31,17 +35,11 @@ st.markdown("""
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         text-shadow: 0 0 30px rgba(33, 150, 243, 0.3);
     }
-    .influencer-names {
-        text-align: center; margin: 1rem 0 2rem 0;
+    .login-container, .post-container {
+        max-width: 600px; margin: auto; padding: 2rem; background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 188, 212, 0.2);
     }
-    .influencer-name {
-        display: block; color: #64b5f6; font-size: 1.1rem; font-weight: 600;
-        margin: 0.3rem 0; transition: all 0.3s ease;
-    }
-    .influencer-name:hover {
-        color: #42a5f5; transform: scale(1.05);
-    }
-    .generate-btn {
+    .login-btn, .generate-btn {
         display: flex; justify-content: center; margin: 2rem 0;
     }
     .stButton > button {
@@ -55,78 +53,89 @@ st.markdown("""
         box-shadow: 0 8px 25px rgba(0, 188, 212, 0.5);
         background: linear-gradient(45deg, #0097a7, #00838f);
     }
-    .generated-post {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(100, 181, 246, 0.3);
-        border-radius: 10px; padding: 1.5rem; margin-top: 2rem;
-        box-shadow: 0 5px 20px rgba(100, 181, 246, 0.1);
-    }
-    .post-content {
-        color: #e3f2fd; line-height: 1.6; font-size: 1rem;
-    }
 </style>
 """, unsafe_allow_html=True)
 
-# Header
-st.markdown("""
-<div class="header-container">
-    <div class="user-info">Logged in as: MECON</div>
-</div>
-""", unsafe_allow_html=True)
+# Session State for Login
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "token" not in st.session_state:
+    st.session_state.token = None
 
-# Title and Influencer
-st.markdown('<h1 class="main-title">Content Generator</h1>', unsafe_allow_html=True)
-st.markdown('<div class="influencer-names"><span class="influencer-name">KHUSHBU_RANI</span></div>', unsafe_allow_html=True)
+# Login Page
+def login_page():
+    st.markdown('<h1 class="main-title">Login</h1>', unsafe_allow_html=True)
+    st.markdown('<div class="login-container">', unsafe_allow_html=True)
 
-# Select Inputs
-col1, col2, col3 = st.columns(3)
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
 
-with col1:
-    title = st.selectbox("Title", [
-        "Resilience", "Leadership", "Innovation", "Growth Mindset", 
-        "Team Building", "Success", "Motivation", "Productivity",
-        "Networking", "Career Development"
-    ])
+    if st.button("Login"):
+        try:
+            response = requests.post(f"{BACKEND_URL}/auth/token", data={
+                "username": username,
+                "password": password
+            }, headers={"Content-Type": "application/x-www-form-urlencoded"})
 
-with col2:
-    length = st.selectbox("Length", ["Short", "Medium", "Long"])
+            if response.status_code == 200:
+                st.session_state.token = response.json()["access_token"]
+                st.session_state.logged_in = True
+                st.success("Login successful!")
+                st.experimental_rerun()
+            else:
+                st.error("Invalid credentials. Please try again.")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with col3:
-    language = st.selectbox("Language", ["English", "Spanish", "French", "German", "Hindi", "Urdu"])
+# Post Generator Page
+def post_generator_page():
+    st.markdown("""
+    <div class="header-container">
+        <div class="user-info">Logged in as: MECON</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown('<h1 class="main-title">Content Generator</h1>', unsafe_allow_html=True)
 
-# Post templates
-post_templates = {
-    "Resilience": {
-        "Short": "Hi, my name is Khushbu Rani, and I am testing my frontend. #internship, #Meccon ",
-        "Medium": "This is for Medium length, Hi, my name is Khushbu Rani, and I am testing my frontend. #internship, #Meccon",
-        "Long": "This is for Long Length, Hi my name is Khushbu Rani, and I am testing my frontend. #internship, #Meccon "
-    },
-    "Leadership": {
-        "Short": "Hi, my name is Khushbu Rani, and I am testing my frontend. #internship, #Meccon ",
-        "Medium": "This is for Medium length, Hi, my name is Khushbu Rani, and I am testing my frontend. #internship, #Meccon",
-        "Long": "This is for Long Length, Hi my name is Khushbu Rani, and I am testing my frontend. #internship, #Meccon "
-    }
-}
+    # Select Inputs
+    col1, col2, col3 = st.columns(3)
 
-# Generate button
-if st.button("Generate Post"):
-    try:
-        selected_template = post_templates.get(title, post_templates["Resilience"])
-        post_content = selected_template.get(length, selected_template["Short"])
+    with col1:
+        title = st.selectbox("Title", [
+            "Resilience", "Leadership", "Innovation", "Growth Mindset", 
+            "Team Building", "Success", "Motivation", "Productivity",
+            "Networking", "Career Development"
+        ])
 
-        # Add language note if not English
-        if language != "English":
-            post_content = f"[This post would be generated in {language}]\n\n" + post_content
+    with col2:
+        length = st.selectbox("Length", ["Short", "Medium", "Long"])
 
-        # Display result
-        st.markdown(f"""
-        <div class="generated-post">
-            <h3 style="color: #64b5f6; margin-bottom: 1rem;">Generated Content:</h3>
-            <div class="post-content">{post_content.replace('\n', '<br>')}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+    with col3:
+        language = st.selectbox("Language", ["English", "Spanish", "French", "German", "Hindi", "Urdu"])
 
-# Add some spacing at the bottom
-st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("Generate Post"):
+        try:
+            response = requests.post(f"{BACKEND_URL}/generate", json={
+                "title": title,
+                "length": length,
+                "language": language
+            }, headers={"Authorization": f"Bearer {st.session_state.token}"})
+
+            if response.status_code == 200:
+                post_content = response.json().get("post", "No content generated.")
+                st.markdown(f"""
+                <div class="post-container">
+                    <h3 style="color: #64b5f6; margin-bottom: 1rem;">Generated Content:</h3>
+                    <div style="color: white; line-height: 1.6; font-size: 1rem;">{post_content}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.error("Error generating post.")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
+
+# Main Logic
+if not st.session_state.logged_in:
+    login_page()
+else:
+    post_generator_page()

@@ -1,25 +1,32 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from utils.gemini_utils import generate_linkedin_post
 from fastapi.middleware.cors import CORSMiddleware
-from backend.gemini_utils import generate_linkedin_post
-from backend.auth import auth_router  # Import auth router
 
 app = FastAPI()
+
+class PostRequest(BaseModel):
+    length: str
+    mood: str
+    language: str
 
 # CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
-
 @app.post("/generate")
-def generate_post(length: str, mood: str, language: str):
-    return {"post": generate_linkedin_post(mood, length, language)}
+def generate_post(request: PostRequest):
+    return {
+        "post": generate_linkedin_post(
+            request.mood, request.length, request.language
+        )
+    }
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to the content generator API"}
+    return {"message": "Welcome to the LinkedIn Post Generator API"}
